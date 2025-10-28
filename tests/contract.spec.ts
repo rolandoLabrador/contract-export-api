@@ -1,41 +1,34 @@
 // tests/contracts.spec.ts
-
+// learn this w3c accessilbe name computation spec 
 //npx playwright test tests/contract.spec.ts
+// tests/contract.spec.ts
 
-import { test, expect } from '@playwright/test';
+
+// tests/contract.spec.ts
+import { test } from '@playwright/test';
 import { LoginPage } from '../pages/LoginPage';
+import { ContractExportPage } from '../pages/ContractExportPage';
 import dotenv from 'dotenv';
 
-// Re-load dotenv here to ensure variables are available to the test worker.
-dotenv.config(); 
-
-// --- DIAGNOSTIC STEP ---
-console.log(`\n--- ENV CHECK ---`);
-console.log(`BASE_URL: ${process.env.BASE_URL}`);
-console.log(`APP_USERNAME: ${process.env.APP_USERNAME}`);
-console.log(`APP_PASSWORD: ${process.env.APP_PASSWORD ? 'Loaded' : 'MISSING!'}`); // Safer check for password
-console.log(`-----------------\n`);
+dotenv.config();
 
 test('Monthly Contract Export Job: Login Phase', async ({ page }) => {
-    
-    // 1. Correctly retrieve variables using the names from your .env
-    const baseURL = process.env.BASE_URL;
-    const username = process.env.APP_USERNAME;
-    const password = process.env.APP_PASSWORD;
+  const baseURL = process.env.BASE_URL!;
+  const username = process.env.APP_USERNAME!;
+  const password = process.env.APP_PASSWORD!;
 
-    // 2. The Check (which is correctly failing)
-    if (!baseURL || !username || !password) {
-        // Now if this fails, the console.log above will tell us exactly which one is missing.
-        throw new Error ('missing env variables: password, username, or baseURL');
-    }
+  // Step 1: Login
+  const loginPage = new LoginPage(page, baseURL);
+  await loginPage.navigate();
+  await loginPage.login(username, password);
 
-    // 3. Instantiate the Page Object using the full URL for now
-    // NOTE: If you are relying on baseURL from config, you would pass 'Main/LoginPage.aspx' here.
-    const loginPage = new LoginPage(page, baseURL); 
+  // Step 2: Go to Contract Export
+  const contractExportPage = new ContractExportPage(page);
+  await contractExportPage.navigateToContractExportView();
 
-    // 4. Execute the login
-    await loginPage.navigate();
-    await loginPage.login(username, password);
+  // Step 3: Verify we are on the correct tab (encapsulated in page object)
+  await contractExportPage.verifyOnContractExportPage();
+  await page.screenshot({ path: 'screenshots/full_page.png', fullPage: true });
 
-    // ... rest of test ...
+  
 });
