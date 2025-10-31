@@ -1,0 +1,80 @@
+// pages/FillContractPage.ts
+
+import {Page, Locator, expect} from '@playwright/test';
+
+// Define the unique message text as a constant for clarity
+const SEARCH_MESSAGE_TEXT = 'Please use search criteria above to find desired records';
+
+export class FillContractPage {
+
+    readonly page:Page;
+    
+    // Locators for the Activation Date Range (Start and End)
+    readonly activationDateStartField: Locator; // Start date input for Activation Date
+    readonly activationDateEndField: Locator;   // End date input for Activation Date
+    
+    // Locators for the functional elements
+    readonly refreshButton: Locator;
+    readonly contractExportButton: Locator;
+    readonly contractExoportNavLink: Locator;
+    readonly contentIframe: Locator; // Needed because the date fields are nested
+    readonly resultMessage: Locator; // <--- This property MUST be assigned a value
+
+    constructor(page:Page) {
+        this.page = page;
+
+        // Locators outside the dynamic content frame (left menu link, buttons)
+        // Note: Using the reliable text locator for Refresh, as previously discussed.
+        this.refreshButton = page.locator('text="Refresh"');
+        this.contractExportButton = page.getByRole('button', { name: 'Contract Export' });
+        this.contractExoportNavLink = page.locator('a:has-text("• Contract Export")');
+
+        // Define the content frame first
+        this.contentIframe = page.locator('#ContentPlaceHolder1_tabPages_frContent1');
+        
+        // --- Activation Date Locators (Inside the iframe) ---
+        this.activationDateStartField = this.contentIframe.contentFrame().locator('#grdList_header7_colFilter_7_dtValue1_7');
+        this.activationDateEndField = this.contentIframe.contentFrame().locator('#grdList_header7_colFilter_7_dtValue2_7'); 
+        
+        // --- FIX: Assigning the resultMessage locator ---
+        // This assignment fixes the TS2564 error.
+        this.resultMessage = this.contentIframe.contentFrame().locator(`text="${SEARCH_MESSAGE_TEXT}"`);
+    }
+
+    async fillContractExport(startDate: string, endDate: string): Promise<void> {
+        console.log(`Setting Activation Date range from ${startDate} to ${endDate}...`);
+        
+        // 1. Set the Start Date
+        await this.activationDateStartField.click();
+        await this.activationDateStartField.fill(startDate);
+        
+        // 2. Set the End Date
+        await this.activationDateEndField.click();
+        await this.activationDateEndField.fill(endDate);
+        
+        // 3. Click the Refresh button
+        await this.refreshButton.click();
+    }
+    
+    // You should also define the verification methods here to complete the class
+    async verifyOnContractExportPage(screenshotName: string): Promise<void> {
+        await expect(this.resultMessage).toBeVisible({ timeout: 10000 });
+        console.log('Verification successful: Unique form content is visible.');
+
+        await this.page.screenshot({ 
+            path: `test-results/screenshots/${screenshotName}.png`,
+            fullPage: true 
+        });
+        console.log(`Screenshot saved: test-results/screenshots/${screenshotName}.png`);
+    }
+
+    async navigateToContractExportView(): Promise<void> {
+        console.log(' Navigating to Contract Export tab...');
+
+        await this.contractExoportNavLink.click();
+        
+        await expect(this.resultMessage).toBeVisible({ timeout: 15000 });
+
+        console.log(' Contract Export form is loaded and ready.');
+    }
+}
